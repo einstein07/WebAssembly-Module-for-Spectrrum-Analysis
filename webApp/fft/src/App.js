@@ -1,25 +1,116 @@
+import { useState, useEffect, useRef } from "react";
 import logo from './logo.svg';
 import './App.css';
 
+
+
 function App() {
+
+  const dataInputFile = useRef(null);
+  const onDataButtonClick = () => {
+    // `current` points to the mounted file input element
+   dataInputFile.current.click();
+  };
+
+  const configInputFile = useRef(null);
+  const onConfigButtonClick = () => {
+    // `current` points to the mounted file input element
+   configInputFile.current.click();
+  };
+
+  const onProcessButtonClick = () => {
+    // `current` points to the mounted file input element
+   
+  };
+
+  const onChangeConfigFile = (e) => {
+    // `current` points to the mounted file input element
+    var file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.readAsText(file);
+
+    reader.onload = function() {
+      //console.log(reader.result);
+      var buffer = reader.result;
+      console.log(buffer);
+    };
+  }
+  const onChangeDataFile = (e) => {
+    // `current` points to the mounted file input element
+    var file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.readAsArrayBuffer(file);
+
+    reader.onload = function() {
+      //console.log(reader.result);
+      var buffer = reader.result;
+      var raw_data = new Int16Array(buffer);
+      console.log(raw_data);
+      var raw_arr_size = raw_data.length;
+      var clean_arr_size = raw_arr_size/2;
+      var clean_data = new Int16Array(clean_arr_size);
+      /***
+        Remove quadrature components
+      */
+      let i_val = 0;
+      let index = 0;
+      for (let i = 0; i < raw_arr_size; i++) {
+        if (i_val == 0 && index < clean_arr_size ){
+          clean_data[index] = raw_data[i];
+          index += 1;
+          i_val = 1;
+        }
+        else{
+          i_val = 0;
+        }
+      }
+      console.log(clean_data);
+    };
+
+    reader.onerror = function() {
+      console.log(reader.error);
+    };
+
+
+  };
+
+
+
   return (
     <div className="App">
       <header className="App-header">
         <h1> WebAssembly Module for Spectrum Analysis</h1>
-
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
       </header>
+
+      <div className="App-content">
+
+        < input type="file"
+          id="dataFileElem"
+          ref={dataInputFile}
+          onChange={onChangeDataFile}
+          accept=".bin"
+          style={{display:'none'}}
+          />
+
+        < input type="file"
+          id="configFileElem"
+          ref={configInputFile}
+          onChange={onChangeConfigFile}
+          accept=".ini"
+          style={{display:'none'}}
+          />
+
+        <div className="App-button-container">
+          <button className="App-button" onClick={onConfigButtonClick}>Open configuration file</button>
+          <button className="App-button" onClick={onDataButtonClick}>Open satellite data file</button>
+          <button className="App-button" onClick={onProcessButtonClick}>Process data</button>
+        </div>
+
+        <p>No files selected!</p>
+
+      </div>
     </div>
   );
 }
