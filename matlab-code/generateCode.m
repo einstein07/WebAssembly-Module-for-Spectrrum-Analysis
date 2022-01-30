@@ -9,14 +9,12 @@ coderConfig.TargetLang = 'C'; % let's use C
 coderConfig.GenCodeOnly = true; % only need the source code
 coderConfig.Toolchain = 'Automatically locate an installed toolchain'; % this can be to specify an existing
 
-% specify template argument types, so MATLAB knows what data types to use
-% in the compiled code:
+% specify the function input type, so MATLAB knows what data types to use
+% in the compiled code.
 % since we will be reading in the file data as int16, just create an array
 % of int16 values, so coder can optimize code knowing that the input will
 % be int16 values (this will map to the short type in C)
-templateInput = ones(1, 100000, 'int16');
-
-codegen -report -config coderConfig getFreqRep.m -args templateInput
+codegen -report -config coderConfig getFreqRep.m -args {coder.typeof(int16(1), [1000, 1], true)}
 
 % the code generations creates various build files in
 % "codegen/lib/getFreqRep". Let's use Matlab's packNGo function to create a

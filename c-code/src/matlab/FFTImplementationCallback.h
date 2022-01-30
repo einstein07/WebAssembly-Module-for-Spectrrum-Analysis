@@ -22,11 +22,20 @@ extern "C" {
 #endif
 
 /* Function Declarations */
-void c_FFTImplementationCallback_dob(const double x[100000],
-                                     const double costab[131073],
-                                     const double sintab[131073],
-                                     const double sintabinv[131073],
-                                     creal_T y[100000]);
+void c_FFTImplementationCallback_doH(const double x_data[], int x_size,
+                                     creal_T y_data[], const int *y_size,
+                                     int unsigned_nRows,
+                                     const double costab_data[],
+                                     const int costab_size[2],
+                                     const double sintab_data[]);
+
+void c_FFTImplementationCallback_dob(const double x_data[], int x_size,
+                                     int n2blue, int nfft,
+                                     const double costab_data[],
+                                     const int costab_size[2],
+                                     const double sintab_data[],
+                                     const double sintabinv_data[],
+                                     creal_T y_data[], int *y_size);
 
 #ifdef __cplusplus
 }
