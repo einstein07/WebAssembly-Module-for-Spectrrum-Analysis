@@ -22,8 +22,9 @@ extern "C" {
 #endif
 
 /* Function Declarations */
-extern void getFreqRep(const short x[100000], creal_T y[100000],
-                       creal_T y_shifted[100000]);
+extern void getFreqRep(const short x_data[], const int x_size[1],
+                       creal_T y_data[], int y_size[1],
+                       creal_T y_shifted_data[], int y_shifted_size[1]);
 
 #ifdef __cplusplus
 }
