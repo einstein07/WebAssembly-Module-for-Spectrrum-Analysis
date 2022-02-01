@@ -1,16 +1,80 @@
 import React, { useState, useEffect, useRef } from "react";
 import Graph from './Graph';
+import Wasm from "react-wasm";
+import createModule from "./getFreqRep.mjs";
 import logo from './logo.svg';
 import './App.css';
 
 
+function wrapGetFreqRep(Module) {
+  // JS-friendly wrapper around the WASM call
+  return function (inputData) {
+    // multiplies two square matrices (as 2-D arrays) of the same size and returns the result
+    const length = inputData.length;
+
+    // set up input arrays with the input data -- remove holes if any
+    const flatInputData = new Float32Array(inputData);
+
+    const buffer = Module._malloc(
+      flatInputData.length * flatInputData.BYTES_PER_ELEMENT
+    );
+    Module.HEAPF32.set(flatInputData, buffer >> 2);
+
+    // allocate memory for the result array
+    const resultBuffer = Module._malloc(
+      flatInputData.length * flatInputData.BYTES_PER_ELEMENT
+    );
+
+    // make the call
+    const resultPointer = Module.ccall(
+      "getFreqRep",
+      "number",
+      ["number", "number"],
+      [buffer, resultBuffer]
+    );
+
+    // get the data from the returned pointer into an flat array
+    const result = [];
+    for (let i = 0; i < length /** 2*/; i++) {
+      result.push(
+        Module.HEAPF32[resultPointer / Float32Array.BYTES_PER_ELEMENT + i]
+      );
+    }
+
+    Module._free(buffer);
+    Module._free(resultBuffer);
+    return result;
+  };
+}
+
 
 function App() {
+
+  //var express = require('express');
+  //console.log('***Express version: ', require('express/package').version);
+
+  const [getFreqRep, setGetFreqRep] = useState();
 
   const [graphState, setGraphState] = useState(false);
   const [graphData, setGraphData] = useState([]);
   const [graphLen, setGraphLen] = useState(0);
 
+  const [fftGraphState, setfftGraphState] = useState(false);
+  const [fftGraphData, setfftGraphData] = useState([]);
+  const [fftGraphLen, setfftGraphLen] = useState(0);
+
+
+  useEffect(
+    // useEffect here is roughly equivalent to putting this in componentDidMount for a class component
+    () => {
+      createModule().then((Module) => {
+        // need to use callback form (() => function) to ensure that `add` is set to the function
+        // if you use setX(myModule.cwrap(...)) then React will try to set newX = myModule.cwrap(currentX), which is wrong
+        setGetFreqRep(() => wrapGetFreqRep(Module));
+      });
+    },
+    []
+  );
 
 
   const dataInputFile = useRef(null);
@@ -58,9 +122,9 @@ function App() {
       //console.log(reader.result);
       var buffer = reader.result;
       var raw_data = new Int16Array(buffer);
-      //console.log(raw_data);
+      console.log("raw data length: " + raw_data.length);
       var raw_arr_size = raw_data.length;
-      var clean_arr_size = raw_arr_size/2;
+      var clean_arr_size = 2048;//raw_arr_size/2;
       clean_data = new Int16Array(clean_arr_size);
       /***
         Remove quadrature components
@@ -81,6 +145,14 @@ function App() {
       setGraphLen(dataCount);
       setGraphData(clean_data);
       setGraphState(true);
+
+      const result = getFreqRep( clean_data );
+
+      setfftGraphLen(result.length);
+      setfftGraphData(result);
+      setfftGraphState(true);
+      console.log(result);
+
     };
 
     reader.onerror = function() {
@@ -90,7 +162,10 @@ function App() {
 
   };
 
-
+/**
+  if (!getFreqRep) {
+    return "Loading webassembly...";
+  }*/
   if (graphState){
     return (
       <div className="App">
@@ -122,7 +197,9 @@ function App() {
             <button className="App-button" onClick={onProcessButtonClick}>Process data</button>
           </div>
 
-          <Graph Data={graphData} Count={graphLen}/>
+            <Graph Data={graphData} Count={graphLen} plotTitle="Real time signal"/>
+
+            <Graph Data={fftGraphData} Count={graphLen} plotTitle="Frequency representation of signal"/>
 
         </div>
       </div>
