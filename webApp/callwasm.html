@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>File(s) url processing</title>
+</head>
+
+<body>
+  <form name="uploadForm">
+    <div>
+      <input type="file" id="fileElem" style="display:none">
+      <a href="#" id="fileSelect">Select binary data file</a>
+
+      <div id="fileList">
+        <p>No files selected!</p>
+      </div>
+    </div>
+    <div><input type="submit" value="Process Data"></div>
+  </form>
+  <script src="getFreqRep.js" type="text/javascript"></script>
+
+  <script>
+    const fileSelect = document.getElementById("fileSelect"),
+    fileElem = document.getElementById("fileElem"),
+    fileList = document.getElementById("fileList");
+
+    fileSelect.addEventListener("click", function (e) {
+      if (fileElem) {
+        fileElem.click();
+      }
+      e.preventDefault(); // prevent navigation to "#"
+      }, false);
+
+    fileElem.addEventListener("change", /**handleFiles*/readFile, false);
+
+    /**function cArray(size) {
+    var offset = Module._malloc(size * 8);
+    Module.HEAPF64.set(new Float64Array(size), offset / 8);
+    return {
+        "data": Module.HEAPF64.subarray(offset / 8, offset / 8 + size),
+        "offset": offset
+    }
+  }*/
+
+    // ========================================================================
+    // Read fileElem
+    // ========================================================================
+    function readFile() {
+      let file = this.files[0];
+
+      let reader = new FileReader();
+
+      reader.readAsArrayBuffer(file);
+
+      reader.onload = function() {
+        fileList.innerHTML = "<p>File loaded successfully!</p>";
+        //console.log(reader.result);
+        var buffer = reader.result;
+        var raw_data = new Int16Array(buffer);
+        //console.log(raw_data);
+        var raw_arr_size = raw_data.length;
+        var clean_arr_size = 2048;//raw_arr_size/2;
+        var clean_data = new Int16Array(clean_arr_size);
+        /***
+          Remove quadrature components
+        */
+        let i_val = 0;
+        let index = 0;
+        for (let i = 0; i < raw_arr_size; i++) {
+          if (i_val == 0 && index < clean_arr_size ){
+            clean_data[index] = raw_data[i];
+            index += 1;
+            i_val = 1;
+          }
+          else{
+            i_val = 0;
+          }
+        }
+        //console.log(clean_data);
+        console.log('Creating cwrap');
+
+        var xOffset = Module._malloc(2048 * 8);
+        var yOffset = Module._malloc(2048 * 8);
+
+        const myFFT = Module.cwrap("getFreqRep", 'number', ['number']);
+        console.log(myFFT);
+
+        Module.HEAPF64.set(new Float64Array(2048), xOffset / 8);
+        Module.HEAPF64.set(new Float64Array(2048), yOffset / 8);
+
+
+        var xPointer = Module.HEAPF64.subarray(xOffset / 8, xOffset / 8 + 2048);
+        var yPointer = Module.HEAPF64.subarray(yOffset / 8, yOffset / 8 + 2048);
+
+        for (let i = 0; i < 2048; i++) {
+          xPointer[i] = clean_data[i];
+          console.log('i: ' + xPointer[i]);
+        }
+        myFFT(xOffset);
+
+        console.log("X data") ;
+        for (let i = 0; i < 2048; i++) {
+          console.log(xPointer[i]) ;
+        }
+
+        console.log("Y data") ;
+        for (let i = 0; i < 2048; i++) {
+          console.log(yPointer[i]) ;
+        }
+
+        //var xArr = cArray(2048);
+        //var yArr = cArray(2048);
+
+
+
+
+      };
+
+      reader.onerror = function() {
+        console.log(reader.error);
+      };
+
+    }
+    // ========================================================================
+
+
+    function handleFiles() {
+      if (this.files.length) {
+        fileList.innerHTML = "<p>No files selected!</p>";
+      } else {
+        fileList.innerHTML = "";
+        const list = document.createElement("ul");
+        fileList.appendChild(list);
+        for (let i = 0; i < this.files.length; i++) {
+          const li = document.createElement("li");
+          list.appendChild(li);
+
+          const img = document.createElement("img");
+          img.src = URL.createObjectURL(this.files[i]);
+          img.height = 60;
+          img.onload = function() {
+            URL.revokeObjectURL(this.src);
+          }
+          li.appendChild(img);
+          const info = document.createElement("span");
+          info.innerHTML = this.files[i].name + ": " + this.files[i].size + " bytes";
+          li.appendChild(info);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
