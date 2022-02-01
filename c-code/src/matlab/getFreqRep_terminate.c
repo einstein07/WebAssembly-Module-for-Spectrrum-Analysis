@@ -11,11 +11,14 @@
 
 /* Include files */
 #include "getFreqRep_terminate.h"
+#include "getFreqRep_data.h"
+#include "rt_nonfinite.h"
 
 /* Function Definitions */
 void getFreqRep_terminate(void)
 {
   /* (no terminate code required) */
+  isInitialized_getFreqRep = false;
 }
 
 /* End of code generation (getFreqRep_terminate.c) */

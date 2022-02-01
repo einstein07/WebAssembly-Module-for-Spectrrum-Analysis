@@ -14,7 +14,7 @@ coderConfig.Toolchain = 'Automatically locate an installed toolchain'; % this ca
 % since we will be reading in the file data as int16, just create an array
 % of int16 values, so coder can optimize code knowing that the input will
 % be int16 values (this will map to the short type in C)
-codegen -report -config coderConfig getFreqRep.m -args {coder.typeof(int16(1), [1000, 1], true)}
+codegen -report -config coderConfig getFreqRep.m -args {coder.typeof(int16(1), [4096, 1], true)}
 
 % the code generations creates various build files in
 % "codegen/lib/getFreqRep". Let's use Matlab's packNGo function to create a

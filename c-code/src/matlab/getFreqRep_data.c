@@ -11,5 +11,9 @@
 
 /* Include files */
 #include "getFreqRep_data.h"
+#include "rt_nonfinite.h"
+
+/* Variable Definitions */
+boolean_T isInitialized_getFreqRep = false;
 
 /* End of code generation (getFreqRep_data.c) */
