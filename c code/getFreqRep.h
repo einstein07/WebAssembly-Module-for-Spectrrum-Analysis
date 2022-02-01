@@ -5,29 +5,23 @@
  * File: getFreqRep.h
  *
  * MATLAB Coder version            : 5.3
- * C/C++ source code generated on  : 14-Jan-2022 12:29:41
+ * C/C++ source code generated on  : 27-Jan-2022 13:57:12
  */
 
 #ifndef GETFREQREP_H
 #define GETFREQREP_H
 
 /* Include Files */
-#include "getFreqRep_types.h"
 #include "rtwtypes.h"
 #include <stddef.h>
 #include <stdlib.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+//extern "C" {
 
 /* Function Declarations */
-extern void getFreqRep(const emxArray_real_T *x, emxArray_creal_T *y,
-                       emxArray_creal_T *y_shifted);
+extern double *getFreqRep(const double x[2048], double y[2048]);
 
-#ifdef __cplusplus
-}
-#endif
+//}
 
 #endif
 /*

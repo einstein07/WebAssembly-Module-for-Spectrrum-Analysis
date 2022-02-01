@@ -5,16 +5,44 @@
  * File: getFreqRep.c
  *
  * MATLAB Coder version            : 5.3
- * C/C++ source code generated on  : 14-Jan-2022 12:29:41
+ * C/C++ source code generated on  : 27-Jan-2022 13:57:12
  */
 
 /* Include Files */
 #include "getFreqRep.h"
-#include "fft.h"
-#include "getFreqRep_emxutil.h"
-#include "getFreqRep_types.h"
+#include "FFTImplementationCallback.h"
+#include "rt_nonfinite.h"
+#include "rt_nonfinite.h"
+#include <math.h>
+#include </home/root07/emsdk/upstream/emscripten/system/include/emscripten.h>
+
+/* Function Declarations */
+static double rt_hypotd_snf(double u0, double u1);
 
 /* Function Definitions */
+/*
+ * Arguments    : double u0
+ *                double u1
+ * Return Type  : double
+ */
+static double rt_hypotd_snf(double u0, double u1)
+{
+  double a;
+  double y;
+  a = fabs(u0);
+  y = fabs(u1);
+  if (a < y) {
+    a /= y;
+    y *= sqrt(a * a + 1.0);
+  } else if (a > y) {
+    y /= a;
+    y = a * sqrt(y * y + 1.0);
+  } else if (!rtIsNaN(y)) {
+    y = a * 1.4142135623730951;
+  }
+  return y;
+}
+
 /*
  * codegen
  * GETFREQREP Computes the fft of a given signal.
@@ -22,16 +50,13 @@
  *    signal. X is an M-by-1 vector. Y is an M-by-1 vector that contains the
  *    results of the fft operation on X.
  *
- * Arguments    : const emxArray_real_T *x
- *                emxArray_creal_T *y
- *                emxArray_creal_T *y_shifted
+ * Arguments    : const double x[2048]
+ *                double y[2048]
  * Return Type  : void
  */
-void getFreqRep(const emxArray_real_T *x, emxArray_creal_T *y,
-                emxArray_creal_T *y_shifted)
+EMSCRIPTEN_KEEPALIVE double *getFreqRep(const double x[2048], double y[2048])
 {
-  creal_T *y_data;
-  creal_T *y_shifted_data;
+  creal_T b_y[2048];
   double xtmp_im;
   double xtmp_re;
   int a;
@@ -44,20 +69,11 @@ void getFreqRep(const emxArray_real_T *x, emxArray_creal_T *y,
   int midoffset;
   int vlend2;
   int vstride;
-  fft(x, y);
-  y_data = y->data;
-  a = y_shifted->size[0];
-  y_shifted->size[0] = y->size[0];
-  emxEnsureCapacity_creal_T(y_shifted, a);
-  y_shifted_data = y_shifted->data;
-  ic = y->size[0];
-  for (a = 0; a < ic; a++) {
-    y_shifted_data[a] = y_data[a];
-  }
+  c_FFTImplementationCallback_doH(x, b_y);
   for (dim = 0; dim < 2; dim++) {
     ic = dim - 1;
     if (dim + 1 <= 1) {
-      a = y_shifted->size[0];
+      a = 2048;
     } else {
       a = 1;
     }
@@ -65,7 +81,7 @@ void getFreqRep(const emxArray_real_T *x, emxArray_creal_T *y,
       vlend2 = a / 2;
       vstride = 1;
       for (k = 0; k <= ic; k++) {
-        vstride *= y_shifted->size[0];
+        vstride <<= 11;
       }
       midoffset = vlend2 * vstride - 1;
       if (vlend2 << 1 == a) {
@@ -76,12 +92,12 @@ void getFreqRep(const emxArray_real_T *x, emxArray_creal_T *y,
           for (k = 0; k < vlend2; k++) {
             a = k * vstride;
             ic = (i1 + a) - 1;
-            xtmp_re = y_shifted_data[ic].re;
-            xtmp_im = y_shifted_data[ic].im;
+            xtmp_re = b_y[ic].re;
+            xtmp_im = b_y[ic].im;
             a += ib;
-            y_shifted_data[ic] = y_shifted_data[a];
-            y_shifted_data[a].re = xtmp_re;
-            y_shifted_data[a].im = xtmp_im;
+            b_y[ic] = b_y[a];
+            b_y[a].re = xtmp_re;
+            b_y[a].im = xtmp_im;
           }
         }
       } else {
@@ -89,21 +105,25 @@ void getFreqRep(const emxArray_real_T *x, emxArray_creal_T *y,
         for (j = 0; j < vstride; j++) {
           i1++;
           ib = i1 + midoffset;
-          xtmp_re = y_shifted_data[ib].re;
-          xtmp_im = y_shifted_data[ib].im;
+          xtmp_re = b_y[ib].re;
+          xtmp_im = b_y[ib].im;
           for (k = 0; k < vlend2; k++) {
             ic = ib + vstride;
             a = (i1 + k * vstride) - 1;
-            y_shifted_data[ib] = y_shifted_data[a];
-            y_shifted_data[a] = y_shifted_data[ic];
+            b_y[ib] = b_y[a];
+            b_y[a] = b_y[ic];
             ib = ic;
           }
-          y_shifted_data[ib].re = xtmp_re;
-          y_shifted_data[ib].im = xtmp_im;
+          b_y[ib].re = xtmp_re;
+          b_y[ib].im = xtmp_im;
         }
       }
     }
   }
+  for (k = 0; k < 2048; k++) {
+    y[k] = rt_hypotd_snf(b_y[k].re, b_y[k].im);
+  }
+  return y;
 }
 
 /*
