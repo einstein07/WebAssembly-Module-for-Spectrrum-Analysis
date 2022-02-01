@@ -13,6 +13,7 @@
 #define FFTIMPLEMENTATIONCALLBACK_H
 
 /* Include files */
+#include "getFreqRep_types.h"
 #include "rtwtypes.h"
 #include <stddef.h>
 #include <stdlib.h>
@@ -23,19 +24,16 @@ extern "C" {
 
 /* Function Declarations */
 void c_FFTImplementationCallback_doH(const double x_data[], int x_size,
-                                     creal_T y_data[], const int *y_size,
-                                     int unsigned_nRows,
-                                     const double costab_data[],
-                                     const int costab_size[2],
-                                     const double sintab_data[]);
+                                     emxArray_creal_T *y, int unsigned_nRows,
+                                     const emxArray_real_T *costab,
+                                     const emxArray_real_T *sintab);
 
 void c_FFTImplementationCallback_dob(const double x_data[], int x_size,
                                      int n2blue, int nfft,
-                                     const double costab_data[],
-                                     const int costab_size[2],
-                                     const double sintab_data[],
-                                     const double sintabinv_data[],
-                                     creal_T y_data[], int *y_size);
+                                     const emxArray_real_T *costab,
+                                     const emxArray_real_T *sintab,
+                                     const emxArray_real_T *sintabinv,
+                                     emxArray_creal_T *y);
 
 #ifdef __cplusplus
 }

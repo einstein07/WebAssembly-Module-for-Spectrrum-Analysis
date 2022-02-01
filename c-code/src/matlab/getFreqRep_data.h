@@ -17,5 +17,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+/* Variable Declarations */
+extern boolean_T isInitialized_getFreqRep;
+
 #endif
 /* End of code generation (getFreqRep_data.h) */

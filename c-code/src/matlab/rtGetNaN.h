@@ -3,32 +3,27 @@
  * course requirements at degree granting institutions only.  Not for
  * government, commercial, or other organizational use.
  *
- * getFreqRep.h
+ * rtGetNaN.h
  *
  * Code generation for function 'getFreqRep'
  *
  */
 
-#ifndef GETFREQREP_H
-#define GETFREQREP_H
+#ifndef RTGETNAN_H
+#define RTGETNAN_H
 
 /* Include files */
 #include "rtwtypes.h"
-#include <stddef.h>
-#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Function Declarations */
-extern void getFreqRep(const short x_data[], const int x_size[1],
-                       double mag_data[], int mag_size[1], double phase_data[],
-                       int phase_size[1]);
+extern real_T rtGetNaN(void);
+extern real32_T rtGetNaNF(void);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif
-/* End of code generation (getFreqRep.h) */
+/* End of code generation (rtGetNaN.h) */
