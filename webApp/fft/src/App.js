@@ -39,8 +39,12 @@ function wrapGetFreqRep(Module) {
       result.push(
         Module.HEAPF32[resultPointer / Float32Array.BYTES_PER_ELEMENT + i]
       );
+      console.log(result[i]);
     }
-
+    /**console.log('result pointer: ');
+    console.log(resultPointer.length);
+    console.log('result buffer: ');
+    console.log(resultBuffer.length);*/
     Module._free(buffer);
     Module._free(resultBuffer);
     return result;
@@ -106,7 +110,7 @@ function App() {
     reader.onload = function() {
       //console.log(reader.result);
       var buffer = reader.result;
-      console.log(buffer);
+      //console.log(buffer);
     };
   }
   var clean_data;
@@ -125,7 +129,7 @@ function App() {
       console.log("raw data length: " + raw_data.length);
       var raw_arr_size = raw_data.length;
       var clean_arr_size = 2048;//raw_arr_size/2;
-      clean_data = new Int16Array(clean_arr_size);
+      clean_data = new Float32Array/**Int16Array*/(clean_arr_size);
       /***
         Remove quadrature components
       */
@@ -141,6 +145,8 @@ function App() {
           i_val = 0;
         }
       }
+      console.log('Clean data: ');
+      console.log(clean_data);
       dataCount = clean_data.length;
       setGraphLen(dataCount);
       setGraphData(clean_data);
@@ -151,7 +157,7 @@ function App() {
       setfftGraphLen(result.length);
       setfftGraphData(result);
       setfftGraphState(true);
-      console.log(result);
+
 
     };
 
@@ -197,9 +203,9 @@ function App() {
             <button className="App-button" onClick={onProcessButtonClick}>Process data</button>
           </div>
 
-            <Graph Data={graphData} Count={graphLen} plotTitle="Real time signal"/>
+            <Graph Type = "Time domain" Data={graphData} Count={graphLen} plotTitle="Real time signal"/>
 
-            <Graph Data={fftGraphData} Count={graphLen} plotTitle="Frequency representation of signal"/>
+            <Graph Type = "Frequency domain" Data={fftGraphData} Count={graphLen} plotTitle="Frequency representation of signal"/>
 
         </div>
       </div>
