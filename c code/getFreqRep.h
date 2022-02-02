@@ -19,7 +19,7 @@
 //extern "C" {
 
 /* Function Declarations */
-extern double *getFreqRep(const double x[2048], double y[2048]);
+extern float *getFreqRep(const float *x/**[2048]*/, float *y/**[2048]*/);
 
 //}
 
