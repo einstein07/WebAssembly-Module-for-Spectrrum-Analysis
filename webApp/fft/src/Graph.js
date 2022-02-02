@@ -9,7 +9,7 @@ function Graph (props) {
       x_axis[i] = i;
       y_axis[i] = props.Data[i];
   }
-  console.log("Plotting data. . .")
+  console.log("Plotting data. . .");
     return (
       <Plot
         data={[
