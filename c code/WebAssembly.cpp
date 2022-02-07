@@ -6,58 +6,39 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 
-#include <iostream>
+#include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include "getFreqRep.h"
-#include "getFreqRep_emxAPI.h"
 #include "getFreqRep_terminate.h"
 #include "getFreqRep_types.h"
 
 using namespace std;
 
 /* Function Declarations */
-static emxArray_real_T *argInit_d1000000x1_real_T(int size, string filename);
+static void argInit_2048x1_real_T(/**double*/ float result[2048], string filename);
 
-static void argInit_real_T(string filename, double *result_data);
+static void argInit_real_T(double *result_data, string filename);
 
-static void main_getFreqRep(string filename);
+static void main_getFreqRep(void);
+//static emxArray_real_T *argInit_d1000000x1_real_T(int size, string filename);
+
+//static void argInit_real_T(string filename, double *result_data);
+
+//static void main_getFreqRep(string filename);
 
 /* Function Definitions */
 /*
  * Arguments    : void
  * Return Type  : emxArray_real_T *
  */
-static emxArray_real_T *argInit_d1000000x1_real_T(int size, string filename)
-{
-  emxArray_real_T *result;
-  double *result_data;
-  const int i = size;//2;
-  int idx0;
-  /* Set the size of the array.
-Change this size to the value that the application requires. */
-  result = emxCreateND_real_T(1, &i);
-  result_data = result->data;
-  /* Loop over the array to initialize each element. */
-  //for (idx0 = 0; idx0 < result->size[0U]; idx0++) {
-    /* Set the value of the array element.
-Change this value to the value that the application requires. */
-    /**result_data[idx0] = */argInit_real_T(filename, result_data);
-  //}
-  return result;
-}
-
-/*
- * Arguments    : void
- * Return Type  : double
- */
-static void argInit_real_T(string filename, double *result_data)
-{
+static void argInit_2048x1_real_T(float/**double*/ result[2048], string filename){
+	//argInit_real_T(result, filename);
 	streampos begin,end;
 	ifstream myfile (filename, ios::binary);
 
 	if (myfile.is_open()) {
-		/* ok, proceed with file operations */
+		// ok, proceed with file operations
 
 		short int value;
 		int i = 0;
@@ -66,7 +47,58 @@ static void argInit_real_T(string filename, double *result_data)
 		while (myfile.read(reinterpret_cast<char *>(&value), sizeof(value))){
 			//cout << value << " ";
 			if (op == 0){
-				if (i > 1000){
+				if (i == 2048){
+					//cout << "overflow" << endl;
+				}
+				else{
+					result[i] = value;
+					i++;
+					op = 1;
+				}
+			}
+			else{
+				op = 0;
+			}
+		}
+		ofstream outfile ("input_data.txt");
+		cout << "data size: "<< i <<endl;
+		if (outfile.is_open()){
+		  for (int j = 0; j < i-1; j++){
+			  outfile << result[j] << "\n";
+		  }
+		  outfile << result[(i-1)];
+		  outfile.close();
+		  printf( "data read successfully!\n" );
+		}
+		else{
+			printf( "Could not open file: input_data.txt" );
+		}
+		myfile.close();
+	}
+	else{
+		printf( "Could not open file: %s", filename );
+	}
+}
+
+/*
+ * Arguments    : void
+ * Return Type  : double
+ */
+static void argInit_real_T(double *result_data, string filename){
+	streampos begin,end;
+	ifstream myfile (filename, ios::binary);
+
+	if (myfile.is_open()) {
+		// ok, proceed with file operations
+
+		short int value;
+		int i = 0;
+		int op = 0;
+
+		while (myfile.read(reinterpret_cast<char *>(&value), sizeof(value))){
+			//cout << value << " ";
+			if (op == 0){
+				if (i > 2048){
 					//cout << "overflow" << endl;
 				}
 				else{
@@ -82,67 +114,55 @@ static void argInit_real_T(string filename, double *result_data)
 		ofstream myfile ("input_data.txt");
 
 		if (myfile.is_open()){
-		  for (int i = 0; i < 1000; i++){
-			  myfile << result_data[i] << "\n";
+		  for (int j = 0; j < i-1; j++){
+			  myfile << result_data[j] << ", ";
 		  }
+		  myfile << result_data[(i-1)];
 		  myfile.close();
 		}
-		cout << "data read successfully!"<<endl;
-		myfile.close();
+		printf( "data read successfully!\n" );
 	}
 	else{
-		cout << "Could not open file: " << filename << endl;
+		printf( "Could not open file: %s", filename );
 	}
 
-	//return 0.0;
 }
 
 /*
  * Arguments    : void
  * Return Type  : void
  */
-static void main_getFreqRep(string dataFileName)
-{
-	streampos size;
-
-	ifstream file (dataFileName, ios::in|ios::binary|ios::ate);
-	if (file.is_open()){
-		size = file.tellg();
-		size = size/2;
-	}
-  emxArray_creal_T *y;
-  emxArray_creal_T *y_shifted;
-  emxArray_real_T *x;
-  emxInitArray_creal_T(&y, 1);
-  emxInitArray_creal_T(&y_shifted, 1);
-
+static void main_getFreqRep(string dataFileName){
+//	streampos size;
+//
+//	ifstream file (dataFileName, ios::in|ios::binary|ios::ate);
+//	if (file.is_open()){
+//		size = file.tellg();
+//		size = size/2;
+//	}
+//
+  /**double*/float x[2048];
+  /**double*/float y[2048];
   /* Initialize function 'getFreqRep' input arguments. */
   /* Initialize function input argument 'x'. */
-  x = argInit_d1000000x1_real_T(1000, dataFileName);
-
   /* Call the entry-point 'getFreqRep'. */
-  getFreqRep(x, y, y_shifted);
-
+  argInit_2048x1_real_T(x, dataFileName);
+  cout << "Performing fft" <<endl;
+  float*  output = getFreqRep(x, y);
+  cout << "FFT done" <<endl;
   ofstream y_file ("y.txt");
-  ofstream y_shifted_file ("y_shifted.txt");
-  int y_size = y->size[0];
-  int yshifted_size = y_shifted->size[0];
-  cout << "Y size: " << y_size << endl;
-  cout << "Y shifted size: " << yshifted_size << endl;
-  if (y_file.is_open() && y_shifted_file.is_open()){
+  int y_size = 2048;
+  printf( "Y size: %d\n", y_size );
+  if (y_file.is_open() ){
 	  for (int i = 0; i < y_size; i++){
-		  y_file << y->data[i].re << " " << y->data[i].im << "\n";
-		  y_shifted_file << y_shifted->data[i].re << " " << y_shifted->data[i].im << "\n";
+		  y_file << y[i] << "\n";
+		  printf( "%f\n", *output);
+		  (*output++);
 	  }
 	  y_file.close();
-	  y_shifted_file.close();
   }
 
-  emxDestroyArray_creal_T(y_shifted);
-  emxDestroyArray_creal_T(y);
-  emxDestroyArray_real_T(x);
 }
-
 
 
 int main() {
@@ -152,10 +172,10 @@ int main() {
 	   * function. So, a call to initialize is not included here. */
 	  /* Invoke the entry-point functions.
 	You can call entry-point functions multiple times. */
-	  main_getFreqRep("data.bin");
+	main_getFreqRep("data.bin");
 	  /* Terminate the application.
 	You do not need to do this more than one time. */
-	  getFreqRep_terminate();
-	  cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
+	//  getFreqRep_terminate();
+	  printf( "!!!Hello World!!!\n" ); // prints !!!Hello World!!!
 	return 0;
 }

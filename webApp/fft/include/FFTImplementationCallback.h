@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 /* Function Declarations */
-void c_FFTImplementationCallback_doH(const float/*double*/ x[2048], creal_T y[2048]);
+void c_FFTImplementationCallback_doH(const double x[2048], creal_T y[2048]);
 
 #ifdef __cplusplus
 }

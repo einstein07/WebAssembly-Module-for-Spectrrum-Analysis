@@ -2,34 +2,40 @@
  * Academic License - for use in teaching, academic research, and meeting
  * course requirements at degree granting institutions only.  Not for
  * government, commercial, or other organizational use.
- * File: FFTImplementationCallback.h
+ * File: rt_nonfinite.h
  *
  * MATLAB Coder version            : 5.3
  * C/C++ source code generated on  : 27-Jan-2022 13:57:12
  */
 
-#ifndef FFTIMPLEMENTATIONCALLBACK_H
-#define FFTIMPLEMENTATIONCALLBACK_H
+#ifndef RT_NONFINITE_H
+#define RT_NONFINITE_H
 
 /* Include Files */
 #include "rtwtypes.h"
-#include <stddef.h>
-#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Function Declarations */
-void c_FFTImplementationCallback_doH(const float/*double*/ x[2048], creal_T y[2048]);
+extern real_T rtInf;
+extern real_T rtMinusInf;
+extern real_T rtNaN;
+extern real32_T rtInfF;
+extern real32_T rtMinusInfF;
+extern real32_T rtNaNF;
+
+extern boolean_T rtIsInf(real_T value);
+extern boolean_T rtIsInfF(real32_T value);
+extern boolean_T rtIsNaN(real_T value);
+extern boolean_T rtIsNaNF(real32_T value);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif
 /*
- * File trailer for FFTImplementationCallback.h
+ * File trailer for rt_nonfinite.h
  *
  * [EOF]
  */
