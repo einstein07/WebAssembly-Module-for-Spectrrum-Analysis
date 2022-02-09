@@ -4,6 +4,8 @@ import Wasm from "react-wasm";
 import createModule from "./getFreqRep.mjs";
 import logo from './logo.svg';
 import './App.css';
+import './IniFileConfig';
+import {IniFileConfig, parseINIString} from './IniFileConfig'
 
 
 function wrapGetFreqRep(Module) {
@@ -54,6 +56,9 @@ function wrapGetFreqRep(Module) {
 
 function App() {
 
+  const CHUNK_SAMPLE_SIZE = 4096; // number of samples per chunk
+  const [iniConfig, setIniConfig] = useState(new IniFileConfig);
+
   //var express = require('express');
   //console.log('***Express version: ', require('express/package').version);
 
@@ -102,17 +107,18 @@ function App() {
 
   const onChangeConfigFile = (e) => {
     // `current` points to the mounted file input element
+    
     var file = e.target.files[0];
     const reader = new FileReader();
 
     reader.readAsText(file);
 
     reader.onload = function() {
-      //console.log(reader.result);
       var buffer = reader.result;
-      //console.log(buffer);
+      setIniConfig(parseINIString(buffer));
     };
   }
+
   var clean_data;
   var dataCount = 0;
   const onChangeDataFile = (e) => {
