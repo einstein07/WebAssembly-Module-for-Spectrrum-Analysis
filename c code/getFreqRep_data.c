@@ -5,11 +5,12 @@
  * File: getFreqRep_data.c
  *
  * MATLAB Coder version            : 5.3
- * C/C++ source code generated on  : 14-Jan-2022 12:29:41
+ * C/C++ source code generated on  : 27-Jan-2022 13:57:12
  */
 
 /* Include Files */
 #include "getFreqRep_data.h"
+#include "rt_nonfinite.h"
 
 /*
  * File trailer for getFreqRep_data.c
