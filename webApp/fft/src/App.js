@@ -39,7 +39,7 @@ function wrapGetFreqRep(Module) {
       result.push(
         Module.HEAPF32[resultPointer / Float32Array.BYTES_PER_ELEMENT + i]
       );
-      console.log(result[i]);
+      //console.log(result[i]);
     }
     /**console.log('result pointer: ');
     console.log(resultPointer.length);
@@ -51,6 +51,32 @@ function wrapGetFreqRep(Module) {
   };
 }
 
+
+/**
+* @param {File|Blob} - file to slice
+* @param {Number} - chunksAmount
+* @return {Array} - an array of Blobs
+**/
+function sliceFile(file) {
+  var byteIndex = 0;
+  var chunks = [];
+
+  var chunksAmount = file.size/(2048 * 4);
+
+  for (var i = 0; i < chunksAmount; i += 1) {
+    var byteEnd = Math.ceil((file.size / chunksAmount) * (i + 1));
+    chunks.push(file.slice(byteIndex, byteEnd));
+    byteIndex += (byteEnd - byteIndex);
+  }
+
+  return chunks;
+}
+
+function sqrtArr (arr) {
+  return arr.map(function (x) {
+    return Math.pow(x, 2);
+  });
+}
 
 function App() {
 
@@ -67,6 +93,7 @@ function App() {
   const [fftGraphData, setfftGraphData] = useState([]);
   const [fftGraphLen, setfftGraphLen] = useState(0);
 
+  const [iqRate, setIQRate] = useState(0);
 
   useEffect(
     // useEffect here is roughly equivalent to putting this in componentDidMount for a class component
@@ -110,7 +137,24 @@ function App() {
     reader.onload = function() {
       //console.log(reader.result);
       var buffer = reader.result;
-      //console.log(buffer);
+      console.log(buffer);
+      var lineWords;
+      // By lines
+      const allLines = buffer.split(/\r\n|\n/);
+      // Reading line by line
+      allLines.forEach((line) => {
+          console.log(line);
+          lineWords = line.split(' ');
+          if (lineWords[0] == 'IQ'){
+            setIQRate(parseInt(lineWords[3]));
+          }
+      });
+
+    };
+
+    reader.onerror = function() {
+      console.log(reader.error);
+      alert(reader.error);
     };
   }
   var clean_data;
@@ -120,13 +164,75 @@ function App() {
     var file = e.target.files[0];
     const reader = new FileReader();
 
+    ////////////////////////////////////////////////////////////////////////////
+    // Read file slices
+    ////////////////////////////////////////////////////////////////////////////
+    var fileChunks = sliceFile(file);
+    var chuncksDensities = new Array(2048).fill(0);
+    console.log(chuncksDensities);
+    for (let k = 0; k < fileChunks.length; k++){
+      const slicesReader = new FileReader();
+      slicesReader.readAsArrayBuffer(fileChunks[k]);
+
+      slicesReader.onload = function() {
+        //console.log(reader.result);
+        var buffer = slicesReader.result;
+        var raw_data = new Int16Array(buffer);
+        console.log("raw data length: " + raw_data.length);
+        var raw_arr_size = raw_data.length;
+        var clean_arr_size = 2048;//raw_arr_size/2;
+        clean_data = new Float32Array/**Int16Array*/(clean_arr_size);
+        /***
+          Remove quadrature components
+        */
+        let i_val = 0;
+        let index = 0;
+        for (let i = 0; i < raw_arr_size; i++) {
+          if (i_val == 0 && index < clean_arr_size ){
+            clean_data[index] = raw_data[i];
+            index += 1;
+            i_val = 1;
+          }
+          else{
+            i_val = 0;
+          }
+        }
+        var freq = getFreqRep( clean_data );
+
+        //console.log("Chuck: " + k);
+        let res = freq.map(x => ((x ** 2)/*/2048*/));
+        var p = 0;
+        for (let i = 0; i < res.length; i++){
+          p += res[i]/2048;
+        }
+        //console.log(res);
+        let normalized = res.map(x => (x/p));
+
+        for (let i = 0; i < normalized.length; i++){
+          chuncksDensities[i] += normalized[i];
+        }
+        //console.log(normalized);
+      }
+    }
+
+/**
+* Find the average
+*/
+    for (let i = 0; i < 2048; i++){
+      let sum = chuncksDensities[i];
+      chuncksDensities[i] = sum / fileChunks.length;
+    }
+////////////////////////////////////////////////////////////////////////////////
+// End of file slicing
+////////////////////////////////////////////////////////////////////////////////
+
     reader.readAsArrayBuffer(file);
 
     reader.onload = function() {
       //console.log(reader.result);
       var buffer = reader.result;
       var raw_data = new Int16Array(buffer);
-      console.log("raw data length: " + raw_data.length);
+      //console.log("raw data length: " + raw_data.length);
       var raw_arr_size = raw_data.length;
       var clean_arr_size = 2048;//raw_arr_size/2;
       clean_data = new Float32Array/**Int16Array*/(clean_arr_size);
@@ -151,18 +257,24 @@ function App() {
       setGraphLen(dataCount);
       setGraphData(clean_data);
       setGraphState(true);
+      //console.log(graphLen);
+
 
       const result = getFreqRep( clean_data );
 
-      setfftGraphLen(result.length);
-      setfftGraphData(result);
+      console.log('Chuckdensities data: ');
+      console.log(/*result*/ chuncksDensities);
+
+      setfftGraphLen(/**result*/chuncksDensities.length);
+      setfftGraphData(/*result*/ chuncksDensities);
       setfftGraphState(true);
 
 
     };
 
     reader.onerror = function() {
-      console.log(reader.error);
+      //console.log(reader.error);
+      alert(reader.error);
     };
 
 
@@ -198,14 +310,18 @@ function App() {
             />
 
           <div className="App-button-container">
-            <button className="App-button" onClick={onConfigButtonClick}>Open configuration file</button>
+            <button
+              className="App-button"
+              onClick={onConfigButtonClick}>
+                Open configuration file
+            </button>
             <button className="App-button" onClick={onDataButtonClick}>Open satellite data file</button>
             <button className="App-button" onClick={onProcessButtonClick}>Process data</button>
           </div>
 
             <Graph Type = "Time domain" Data={graphData} Count={graphLen} plotTitle="Real time signal"/>
 
-            <Graph Type = "Frequency domain" Data={fftGraphData} Count={graphLen} plotTitle="Frequency representation of signal"/>
+            <Graph Type = "Frequency domain" Data={fftGraphData} Count={graphLen} IQrate={iqRate} plotTitle="Frequency representation of signal"/>
 
         </div>
       </div>
