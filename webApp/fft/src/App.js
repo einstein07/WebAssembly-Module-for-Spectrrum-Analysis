@@ -5,7 +5,10 @@ import createModule from "./getFreqRep.mjs";
 import logo from './logo.svg';
 import './App.css';
 
-
+/**
+* @param {Module}
+* @return {Array} - an array of fft values
+**/
 function wrapGetFreqRep(Module) {
   // JS-friendly wrapper around the WASM call
   return function (inputData) {
@@ -35,16 +38,12 @@ function wrapGetFreqRep(Module) {
 
     // get the data from the returned pointer into an flat array
     const result = [];
-    for (let i = 0; i < length /** 2*/; i++) {
+    for (let i = 0; i < length; i++) {
       result.push(
         Module.HEAPF32[resultPointer / Float32Array.BYTES_PER_ELEMENT + i]
       );
-      //console.log(result[i]);
     }
-    /**console.log('result pointer: ');
-    console.log(resultPointer.length);
-    console.log('result buffer: ');
-    console.log(resultBuffer.length);*/
+    // Release memory
     Module._free(buffer);
     Module._free(resultBuffer);
     return result;
@@ -72,16 +71,11 @@ function sliceFile(file) {
   return chunks;
 }
 
-function sqrtArr (arr) {
-  return arr.map(function (x) {
-    return Math.pow(x, 2);
-  });
-}
-
 function App() {
 
-  //var express = require('express');
-  //console.log('***Express version: ', require('express/package').version);
+  //////////////////////////////////////////////////////////////////////////////
+  // States and variables
+  //////////////////////////////////////////////////////////////////////////////
 
   const [getFreqRep, setGetFreqRep] = useState();
 
@@ -95,6 +89,13 @@ function App() {
 
   const [iqRate, setIQRate] = useState(0);
 
+  var file;
+  var clean_data;
+  var dataCount = 0;
+
+  var fileChunks;
+  var chuncksDensities = new Array(2048).fill(0);
+  //////////////////////////////////////////////////////////////////////////////
   useEffect(
     // useEffect here is roughly equivalent to putting this in componentDidMount for a class component
     () => {
@@ -122,7 +123,72 @@ function App() {
 
   const onProcessButtonClick = () => {
     // `current` points to the mounted file input element
+    for (let k = 0; k < fileChunks.length; k++){
 
+      const slicesReader = new FileReader();
+      slicesReader.readAsArrayBuffer(fileChunks[k]);
+
+      slicesReader.onload = function() {
+        var buffer = slicesReader.result;
+        var raw_data = new Int16Array(buffer);
+        var raw_arr_size = raw_data.length;
+        var clean_arr_size = 2048;
+        clean_data = new Float32Array(clean_arr_size);
+        /*********************************************
+          Remove quadrature components
+        *********************************************/
+        let i_val = 0;
+        let index = 0;
+        for (let i = 0; i < raw_arr_size; i++) {
+          if (i_val == 0 && index < clean_arr_size ){
+            clean_data[index] = raw_data[i];
+            index += 1;
+            i_val = 1;
+          }
+          else{
+            i_val = 0;
+          }
+        }
+        /*********************************************
+          Call wasm - compute fft
+        *********************************************/
+        var freq = getFreqRep( clean_data );
+        /*********************************************
+          Estimate powr density
+        *********************************************/
+        let Sxx/**res*/ = freq.map(x => ((x ** 2)));
+        var Px = 0;
+        for (let i = 0; i < Sxx.length; i++){
+          Px += Sxx[i]/2048;
+        }
+        let normalized = Sxx.map(x => (x/Px));
+
+        for (let i = 0; i < normalized.length; i++){
+          chuncksDensities[i] += normalized[i];
+          console.log(chuncksDensities[i]);
+        }
+      }
+
+
+    }
+    /*********************************************
+      Find the average
+    *********************************************/
+    for (let i = 0; i < 2048; i++){
+      let sum = chuncksDensities[i];
+      chuncksDensities[i] = sum / fileChunks.length;
+      if ( i == 2047){
+        console.log(chuncksDensities);
+        setfftGraphLen(chuncksDensities.length);
+        setfftGraphData(chuncksDensities);
+        setfftGraphState(true);
+      }
+    }
+
+    dataCount = clean_data.length;
+    setGraphLen(dataCount);
+    setGraphData(clean_data);
+    setGraphState(true);
 
   };
 
@@ -135,7 +201,6 @@ function App() {
     reader.readAsText(file);
 
     reader.onload = function() {
-      //console.log(reader.result);
       var buffer = reader.result;
       console.log(buffer);
       var lineWords;
@@ -149,42 +214,37 @@ function App() {
             setIQRate(parseInt(lineWords[3]));
           }
       });
-
+      alert("Config file read successfully!");
     };
 
     reader.onerror = function() {
-      console.log(reader.error);
       alert(reader.error);
     };
   }
-  var clean_data;
-  var dataCount = 0;
+
+
   const onChangeDataFile = (e) => {
     // `current` points to the mounted file input element
-    var file = e.target.files[0];
+    file = e.target.files[0];
     const reader = new FileReader();
 
     ////////////////////////////////////////////////////////////////////////////
     // Read file slices
     ////////////////////////////////////////////////////////////////////////////
-    var fileChunks = sliceFile(file);
-    var chuncksDensities = new Array(2048).fill(0);
-    console.log(chuncksDensities);
+    fileChunks = sliceFile(file);
     for (let k = 0; k < fileChunks.length; k++){
       const slicesReader = new FileReader();
       slicesReader.readAsArrayBuffer(fileChunks[k]);
 
       slicesReader.onload = function() {
-        //console.log(reader.result);
         var buffer = slicesReader.result;
         var raw_data = new Int16Array(buffer);
-        console.log("raw data length: " + raw_data.length);
         var raw_arr_size = raw_data.length;
-        var clean_arr_size = 2048;//raw_arr_size/2;
-        clean_data = new Float32Array/**Int16Array*/(clean_arr_size);
-        /***
+        var clean_arr_size = 2048;
+        clean_data = new Float32Array(clean_arr_size);
+        /*********************************************
           Remove quadrature components
-        */
+        *********************************************/
         let i_val = 0;
         let index = 0;
         for (let i = 0; i < raw_arr_size; i++) {
@@ -197,48 +257,49 @@ function App() {
             i_val = 0;
           }
         }
-        var freq = getFreqRep( clean_data );
-
-        //console.log("Chuck: " + k);
-        let res = freq.map(x => ((x ** 2)/*/2048*/));
-        var p = 0;
-        for (let i = 0; i < res.length; i++){
-          p += res[i]/2048;
+        /*********************************************
+          Call wasm - compute fft
+        *********************************************/
+        //var freq = getFreqRep( clean_data );
+        /*********************************************
+          Estimate powr density
+        *********************************************/
+        /**let Sxx = freq.map(x => ((x ** 2)));
+        var Px = 0;
+        for (let i = 0; i < Sxx.length; i++){
+          Px += Sxx[i]/2048;
         }
-        //console.log(res);
-        let normalized = res.map(x => (x/p));
+        let normalized = Sxx.map(x => (x/Px));
 
         for (let i = 0; i < normalized.length; i++){
           chuncksDensities[i] += normalized[i];
-        }
-        //console.log(normalized);
+        }*/
       }
+      /**slicesReader.onerror = function() {
+        alert(slicesReader.error);
+      };*/
     }
-
-/**
-* Find the average
-*/
-    for (let i = 0; i < 2048; i++){
+    /*********************************************
+      Find the average
+    *********************************************/
+    /**for (let i = 0; i < 2048; i++){
       let sum = chuncksDensities[i];
       chuncksDensities[i] = sum / fileChunks.length;
-    }
+    }*/
 ////////////////////////////////////////////////////////////////////////////////
 // End of file slicing
 ////////////////////////////////////////////////////////////////////////////////
-
+    alert("Satellite data read successfully!");
+/**
     reader.readAsArrayBuffer(file);
 
     reader.onload = function() {
-      //console.log(reader.result);
       var buffer = reader.result;
       var raw_data = new Int16Array(buffer);
-      //console.log("raw data length: " + raw_data.length);
       var raw_arr_size = raw_data.length;
       var clean_arr_size = 2048;//raw_arr_size/2;
-      clean_data = new Float32Array/**Int16Array*/(clean_arr_size);
-      /***
-        Remove quadrature components
-      */
+      clean_data = new Float32Array(clean_arr_size);
+
       let i_val = 0;
       let index = 0;
       for (let i = 0; i < raw_arr_size; i++) {
@@ -251,32 +312,15 @@ function App() {
           i_val = 0;
         }
       }
-      console.log('Clean data: ');
-      console.log(clean_data);
-      dataCount = clean_data.length;
-      setGraphLen(dataCount);
-      setGraphData(clean_data);
-      setGraphState(true);
-      //console.log(graphLen);
 
-
-      const result = getFreqRep( clean_data );
-
-      console.log('Chuckdensities data: ');
-      console.log(/*result*/ chuncksDensities);
-
-      setfftGraphLen(/**result*/chuncksDensities.length);
-      setfftGraphData(/*result*/ chuncksDensities);
-      setfftGraphState(true);
 
 
     };
 
     reader.onerror = function() {
-      //console.log(reader.error);
       alert(reader.error);
     };
-
+*/
 
   };
 
