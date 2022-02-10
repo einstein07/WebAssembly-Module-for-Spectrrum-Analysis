@@ -138,8 +138,7 @@ function App() {
     ////////////////////////////////////////////////////////////////////////////
     setProcessingState(false);
     var Ts = 1/iqRate;
-    console.log("fileChunks length: " + fileChunks.length );
-    for (let k = 0; k < fileChunks.length; k++){
+    for (let k = 0; k < 1000 /**Limit number of chuncks to 1000 for testing purposes*/; k++){
 
       const slicesReader = new FileReader();
       slicesReader.readAsArrayBuffer(fileChunks[k]);
@@ -195,15 +194,15 @@ function App() {
           chuncksDensities[i] += normalized[i];
         }
 
-        if ( k == (fileChunks.length-1)){
+        if ( k == (/**fileChunks.length*/1000-1)){
           setProcessingState(true);
           /*********************************************
             Find the average
           *********************************************/
           for (let i = 0; i < 2048; i++){
             let sum = chuncksDensities[i];
-            chuncksDensities[i] = sum / fileChunks.length;
-            timeChunckDensities[i] = timeChunckDensities[i]/fileChunks.length;
+            chuncksDensities[i] = sum / /**fileChunks.length*/1000;
+            timeChunckDensities[i] = timeChunckDensities[i]/1000/*fileChunks.length*/;
           }
 
           /*********************************************
