@@ -15,7 +15,6 @@
 #include "rt_nonfinite.h"
 #include <math.h>
 #include <stdio.h>
-//#include </home/root07/emsdk/upstream/emscripten/system/include/emscripten.h>
 
 /* Function Declarations */
 static double rt_hypotd_snf(double u0, double u1);
@@ -55,7 +54,7 @@ static double rt_hypotd_snf(double u0, double u1)
  *                double y[2048]
  * Return Type  : void
  */
-/**EMSCRIPTEN_KEEPALIVE*/ float *getFreqRep(const float *x/**[2048]*/, float *y/**[2048]*/)
+float *getFreqRep(const float *x, float *y)
 {
   creal_T b_y[2048];
   double xtmp_im;
@@ -123,7 +122,6 @@ static double rt_hypotd_snf(double u0, double u1)
   }
   for (k = 0; k < 2048; k++) {
     y[k] = rt_hypotd_snf(b_y[k].re, b_y[k].im);
-    printf("%f\n", y[k]);
   }
   return y;
 }
