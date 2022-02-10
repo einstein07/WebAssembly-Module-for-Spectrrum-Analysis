@@ -12,7 +12,6 @@ import './App.css';
 function wrapGetFreqRep(Module) {
   // JS-friendly wrapper around the WASM call
   return function (inputData) {
-    // multiplies two square matrices (as 2-D arrays) of the same size and returns the result
     const length = inputData.length;
 
     // set up input arrays with the input data -- remove holes if any
@@ -76,7 +75,7 @@ function App() {
   //////////////////////////////////////////////////////////////////////////////
   // States and variables
   //////////////////////////////////////////////////////////////////////////////
-  const [processingState, setProcessingState] = useState(false);
+  const [processingState, setProcessingState] = useState(true);
 
   const [getFreqRep, setGetFreqRep] = useState();
 
@@ -101,11 +100,13 @@ function App() {
   var chuncksDensities = new Array(2048).fill(0);
   //////////////////////////////////////////////////////////////////////////////
   useEffect(
-    // useEffect here is roughly equivalent to putting this in componentDidMount for a class component
+    // useEffect here is roughly equivalent to putting this in componentDidMount
+    // for a class component
     () => {
       createModule().then((Module) => {
-        // need to use callback form (() => function) to ensure that `add` is set to the function
-        // if you use setX(myModule.cwrap(...)) then React will try to set newX = myModule.cwrap(currentX), which is wrong
+        // need to use callback form (() => function) to ensure that `add` is
+        // set to the function if you use setX(myModule.cwrap(...)) then React
+        // will try to set newX = myModule.cwrap(currentX), which is wrong
         setGetFreqRep(() => wrapGetFreqRep(Module));
       });
     },
@@ -126,7 +127,11 @@ function App() {
   };
 
   const onProcessButtonClick = () => {
-    // `current` points to the mounted file input element
+    ////////////////////////////////////////////////////////////////////////////
+    // Process satallite data and plot signal power graphs - i.e. time and
+    // frequency domains
+    ////////////////////////////////////////////////////////////////////////////
+    setProcessingState(false);
     var Ts = 1/iqRate;
     console.log("fileChunks length: " + fileChunks.length );
     for (let k = 0; k < fileChunks.length; k++){
@@ -164,7 +169,7 @@ function App() {
         *********************************************/
         let timePowDensity = clean_data.map(x => (((x** 2) * Ts)));
 
-        let Sxx/**res*/ = freq.map(x => ((x ** 2)));
+        let Sxx = freq.map(x => ((x ** 2)));
         var Px = 0;
 
         let Px_n = 0;
@@ -172,56 +177,42 @@ function App() {
           Px += Sxx[i]/2048;
 
           let n = 1;
-          //if ( k == 0){
-          //  console.log(Ts);
-            //for (let j = 0; j <= i; j++){
-              Px_n += timePowDensity[i];
-              n = n + i;
-            //}
-              timeChunckDensities[i] += Px_n/(n * Ts);
-              ///console.log("Px_n: " + Px_n + ". n*Ts: " + (n * Ts));
-          //}
-
+          Px_n += timePowDensity[i];
+          n = n + i;
+          timeChunckDensities[i] += Px_n/(n * Ts);
         }
         let normalized = Sxx.map(x => (x/Px));
 
         for (let i = 0; i < normalized.length; i++){
           chuncksDensities[i] += normalized[i];
-          //
         }
-        //console.log("k value: " + k);
-        if ( k == (fileChunks.length-1)){
-          console.log("k value: " + k + ". Setting processing state");
-          setProcessingState(true);
-          console.log("Processing state set");
 
+        if ( k == (fileChunks.length-1)){
+          setProcessingState(true);
+          /*********************************************
+            Find the average
+          *********************************************/
           for (let i = 0; i < 2048; i++){
             let sum = chuncksDensities[i];
             chuncksDensities[i] = sum / fileChunks.length;
             timeChunckDensities[i] = timeChunckDensities[i]/fileChunks.length;
           }
-          console.log(timeChunckDensities);
+
+          /*********************************************
+            Set data to graph signal power in time domain
+          *********************************************/
+          setGraphLen(timeChunckDensities.length);
+          setGraphData(timeChunckDensities);
+          setGraphState(true);
+          /*********************************************
+            Set data to graph signal power in frequency domain
+          *********************************************/
           setfftGraphLen(chuncksDensities.length);
           setfftGraphData(chuncksDensities);
           setfftGraphState(true);
-
-          dataCount = clean_data.length;
-          setGraphLen(dataCount);
-          setGraphData(/*clean_data*/timeChunckDensities);
-          setGraphState(true);
         }
       }
-
-
     }
-    /*********************************************
-      Find the average
-    *********************************************/
-    if (processingState){
-
-    }
-
-
   };
 
 
@@ -256,110 +247,33 @@ function App() {
 
 
   const onChangeDataFile = (e) => {
-    // `current` points to the mounted file input element
-    file = e.target.files[0];
-    const reader = new FileReader();
-
     ////////////////////////////////////////////////////////////////////////////
     // Read file slices
     ////////////////////////////////////////////////////////////////////////////
+
+    file = e.target.files[0];
+    const reader = new FileReader();
+
     fileChunks = sliceFile(file);
-    for (let k = 0; k < fileChunks.length; k++){
-      const slicesReader = new FileReader();
-      slicesReader.readAsArrayBuffer(fileChunks[k]);
 
-      slicesReader.onload = function() {
-        var buffer = slicesReader.result;
-        var raw_data = new Int16Array(buffer);
-        var raw_arr_size = raw_data.length;
-        var clean_arr_size = 2048;
-        clean_data = new Float32Array(clean_arr_size);
-        /*********************************************
-          Remove quadrature components
-        *********************************************/
-        let i_val = 0;
-        let index = 0;
-        for (let i = 0; i < raw_arr_size; i++) {
-          if (i_val == 0 && index < clean_arr_size ){
-            clean_data[index] = raw_data[i];
-            index += 1;
-            i_val = 1;
-          }
-          else{
-            i_val = 0;
-          }
-        }
-        /*********************************************
-          Call wasm - compute fft
-        *********************************************/
-        //var freq = getFreqRep( clean_data );
-        /*********************************************
-          Estimate powr density
-        *********************************************/
-        /**let Sxx = freq.map(x => ((x ** 2)));
-        var Px = 0;
-        for (let i = 0; i < Sxx.length; i++){
-          Px += Sxx[i]/2048;
-        }
-        let normalized = Sxx.map(x => (x/Px));
-
-        for (let i = 0; i < normalized.length; i++){
-          chuncksDensities[i] += normalized[i];
-        }*/
-      }
-      /**slicesReader.onerror = function() {
-        alert(slicesReader.error);
-      };*/
-    }
-    /*********************************************
-      Find the average
-    *********************************************/
-    /**for (let i = 0; i < 2048; i++){
-      let sum = chuncksDensities[i];
-      chuncksDensities[i] = sum / fileChunks.length;
-    }*/
-////////////////////////////////////////////////////////////////////////////////
-// End of file slicing
-////////////////////////////////////////////////////////////////////////////////
     alert("Satellite data read successfully!");
-/**
-    reader.readAsArrayBuffer(file);
-
-    reader.onload = function() {
-      var buffer = reader.result;
-      var raw_data = new Int16Array(buffer);
-      var raw_arr_size = raw_data.length;
-      var clean_arr_size = 2048;//raw_arr_size/2;
-      clean_data = new Float32Array(clean_arr_size);
-
-      let i_val = 0;
-      let index = 0;
-      for (let i = 0; i < raw_arr_size; i++) {
-        if (i_val == 0 && index < clean_arr_size ){
-          clean_data[index] = raw_data[i];
-          index += 1;
-          i_val = 1;
-        }
-        else{
-          i_val = 0;
-        }
-      }
-
-
-
-    };
-
-    reader.onerror = function() {
-      alert(reader.error);
-    };
-*/
+    ////////////////////////////////////////////////////////////////////////////
+    // End of file slicing
+    ////////////////////////////////////////////////////////////////////////////
 
   };
 
-/**
-  if (!getFreqRep) {
-    return "Loading webassembly...";
-  }*/
+
+  if (!processingState) {
+    return (
+      <div className="App">
+        <header className="App-header">
+          <h1> WebAssembly Module for Spectrum Analysis</h1>
+          <h4> Processing data. . . </h4>
+        </header>
+      </div>
+      );
+  }
   if (graphState){
     return (
       <div className="App">
