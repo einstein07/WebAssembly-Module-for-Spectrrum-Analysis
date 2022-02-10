@@ -76,6 +76,7 @@ function App() {
   //////////////////////////////////////////////////////////////////////////////
   // States and variables
   //////////////////////////////////////////////////////////////////////////////
+  const [processingState, setProcessingState] = useState(false);
 
   const [getFreqRep, setGetFreqRep] = useState();
 
@@ -94,6 +95,9 @@ function App() {
   var dataCount = 0;
 
   var fileChunks;
+  // Holds time domain power densities for all chuncks
+  var timeChunckDensities = new Array(2048).fill(0);
+  // Holds frequency power densities for all chuncks
   var chuncksDensities = new Array(2048).fill(0);
   //////////////////////////////////////////////////////////////////////////////
   useEffect(
@@ -123,6 +127,8 @@ function App() {
 
   const onProcessButtonClick = () => {
     // `current` points to the mounted file input element
+    var Ts = 1/iqRate;
+    console.log("fileChunks length: " + fileChunks.length );
     for (let k = 0; k < fileChunks.length; k++){
 
       const slicesReader = new FileReader();
@@ -154,18 +160,55 @@ function App() {
         *********************************************/
         var freq = getFreqRep( clean_data );
         /*********************************************
-          Estimate powr density
+          Estimate power density
         *********************************************/
+        let timePowDensity = clean_data.map(x => (((x** 2) * Ts)));
+
         let Sxx/**res*/ = freq.map(x => ((x ** 2)));
         var Px = 0;
+
+        let Px_n = 0;
         for (let i = 0; i < Sxx.length; i++){
           Px += Sxx[i]/2048;
+
+          let n = 1;
+          //if ( k == 0){
+          //  console.log(Ts);
+            //for (let j = 0; j <= i; j++){
+              Px_n += timePowDensity[i];
+              n = n + i;
+            //}
+              timeChunckDensities[i] += Px_n/(n * Ts);
+              ///console.log("Px_n: " + Px_n + ". n*Ts: " + (n * Ts));
+          //}
+
         }
         let normalized = Sxx.map(x => (x/Px));
 
         for (let i = 0; i < normalized.length; i++){
           chuncksDensities[i] += normalized[i];
-          console.log(chuncksDensities[i]);
+          //
+        }
+        //console.log("k value: " + k);
+        if ( k == (fileChunks.length-1)){
+          console.log("k value: " + k + ". Setting processing state");
+          setProcessingState(true);
+          console.log("Processing state set");
+
+          for (let i = 0; i < 2048; i++){
+            let sum = chuncksDensities[i];
+            chuncksDensities[i] = sum / fileChunks.length;
+            timeChunckDensities[i] = timeChunckDensities[i]/fileChunks.length;
+          }
+          console.log(timeChunckDensities);
+          setfftGraphLen(chuncksDensities.length);
+          setfftGraphData(chuncksDensities);
+          setfftGraphState(true);
+
+          dataCount = clean_data.length;
+          setGraphLen(dataCount);
+          setGraphData(/*clean_data*/timeChunckDensities);
+          setGraphState(true);
         }
       }
 
@@ -174,21 +217,10 @@ function App() {
     /*********************************************
       Find the average
     *********************************************/
-    for (let i = 0; i < 2048; i++){
-      let sum = chuncksDensities[i];
-      chuncksDensities[i] = sum / fileChunks.length;
-      if ( i == 2047){
-        console.log(chuncksDensities);
-        setfftGraphLen(chuncksDensities.length);
-        setfftGraphData(chuncksDensities);
-        setfftGraphState(true);
-      }
+    if (processingState){
+
     }
 
-    dataCount = clean_data.length;
-    setGraphLen(dataCount);
-    setGraphData(clean_data);
-    setGraphState(true);
 
   };
 
@@ -363,9 +395,9 @@ function App() {
             <button className="App-button" onClick={onProcessButtonClick}>Process data</button>
           </div>
 
-            <Graph Type = "Time domain" Data={graphData} Count={graphLen} plotTitle="Real time signal"/>
+            <Graph Type = "Time domain" Data={graphData} Count={graphLen} plotTitle="Signal power in time domain (averaged across all chunks)"/>
 
-            <Graph Type = "Frequency domain" Data={fftGraphData} Count={graphLen} IQrate={iqRate} plotTitle="Frequency representation of signal"/>
+            <Graph Type = "Frequency domain" Data={fftGraphData} Count={graphLen} IQrate={iqRate} plotTitle="Signal power in frequency domain (averaged acrosss all chunks)"/>
 
         </div>
       </div>
