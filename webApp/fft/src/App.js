@@ -167,10 +167,16 @@ function App() {
         /*********************************************
           Call wasm - compute fft
         *********************************************/
-        var t0 = performance.now();
+        var twasm0 = performance.now();
         var freq = getFreqRep( clean_data );
+        var twasm1 = performance.now();
+        console.log("Call to fft wasm module took " + (twasm1 - twasm0) + " milliseconds.");
+        var fft = require('fft-js').fft;
+        var t0 = performance.now();
+        var phasors = fft(clean_data);
         var t1 = performance.now();
-        console.log("Call to fft wasm module took " + (t1 - t0) + " milliseconds.");
+        console.log("Call to fft javascript module took " + (t1 - t0) + " milliseconds.");
+
         /*********************************************
           Estimate power density
         *********************************************/
