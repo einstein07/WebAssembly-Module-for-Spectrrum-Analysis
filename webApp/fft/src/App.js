@@ -4,6 +4,8 @@ import Wasm from "react-wasm";
 import createModule from "./getFreqRep.mjs";
 import logo from './logo.svg';
 import './App.css';
+import './IniFileConfig';
+import {IniFileConfig, parseINIString} from './IniFileConfig'
 
 /**
 * @param {Module}
@@ -76,6 +78,9 @@ function App() {
   // States and variables
   //////////////////////////////////////////////////////////////////////////////
   const [processingState, setProcessingState] = useState(true);
+
+  const CHUNK_SAMPLE_SIZE = 4096; // number of samples per chunk
+  const [iniConfig, setIniConfig] = useState(new IniFileConfig);
 
   const [getFreqRep, setGetFreqRep] = useState();
 
@@ -218,6 +223,7 @@ function App() {
 
   const onChangeConfigFile = (e) => {
     // `current` points to the mounted file input element
+    
     var file = e.target.files[0];
     const reader = new FileReader();
 
@@ -225,13 +231,11 @@ function App() {
 
     reader.onload = function() {
       var buffer = reader.result;
-      console.log(buffer);
       var lineWords;
       // By lines
       const allLines = buffer.split(/\r\n|\n/);
       // Reading line by line
       allLines.forEach((line) => {
-          console.log(line);
           lineWords = line.split(' ');
           if (lineWords[0] == 'IQ'){
             setIQRate(parseInt(lineWords[3]));
@@ -239,11 +243,10 @@ function App() {
       });
       alert("Config file read successfully!");
     };
-
-    reader.onerror = function() {
-      alert(reader.error);
+      setIniConfig(parseINIString(buffer));
     };
   }
+
 
 
   const onChangeDataFile = (e) => {
