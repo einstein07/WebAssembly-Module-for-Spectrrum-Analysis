@@ -140,7 +140,7 @@ static void main_getFreqRep(string dataFileName){
   float*  output = getFreqRep(x, y);
   clock_t end = clock();
   double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
-  printf("Time taken %f seconds\n", time_spent);
+  printf("Time taken %f milliseconds\n", time_spent);
 
 
   ofstream y_file ("y.txt");
