@@ -223,7 +223,7 @@ function App() {
 
   const onChangeConfigFile = (e) => {
     // `current` points to the mounted file input element
-    
+
     var file = e.target.files[0];
     const reader = new FileReader();
 
@@ -241,11 +241,11 @@ function App() {
             setIQRate(parseInt(lineWords[3]));
           }
       });
+      setIniConfig(parseINIString(buffer));
       alert("Config file read successfully!");
     };
-      setIniConfig(parseINIString(buffer));
+
     };
-  }
 
 
 
