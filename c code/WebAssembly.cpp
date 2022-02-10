@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <time.h> //for benchmarking purposes
 #include "getFreqRep.h"
 #include "getFreqRep_terminate.h"
 #include "getFreqRep_types.h"
@@ -134,9 +135,14 @@ static void main_getFreqRep(string dataFileName){
   /* Initialize function input argument 'x'. */
   /* Call the entry-point 'getFreqRep'. */
   argInit_2048x1_real_T(x, dataFileName);
-  cout << "Performing fft" <<endl;
+
+  clock_t start = clock();
   float*  output = getFreqRep(x, y);
-  cout << "FFT done" <<endl;
+  clock_t end = clock();
+  double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+  printf("Time taken %f seconds\n", time_spent);
+
+
   ofstream y_file ("y.txt");
   int y_size = SIZE_;
   printf( "Y size: %d\n", y_size );
